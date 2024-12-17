@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Trash2, Edit3, Calendar, CheckCircle, MoreHorizontal } from 'lucide-react';
-
+import { Plus, Trash2, Edit3, Calendar, CheckCircle, MoreHorizontal, X, ExternalLink } from 'lucide-react';
 function App() {
   const [todos, setTodos] = useState([]);
   const [title, setTitle] = useState('');
@@ -10,6 +9,16 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
+  const [backendURL, setBackendURL] = useState('https://todolistweb5-41e1595ff61a.herokuapp.com/');
+  const [showRoutes, setShowRoutes] = useState(false);
+  const apiRoutes = [
+    { method: 'GET', path: 'api/todos', desc: 'Get all todos' },
+    { method: 'GET', path: 'api/todos/:id', desc: 'Get single todo' },
+    { method: 'POST', path: 'api/todos', desc: 'Create new todo' },
+    { method: 'PATCH', path: 'api/todos/:id', desc: 'Update todo' },
+    { method: 'DELETE', path: 'api/todos/:id', desc: 'Delete todo' },
+    { method: 'PATCH', path: 'api/todos/:id/toggle', desc: 'Toggle todo status' }
+  ];
 
   useEffect(() => {
     fetchTodos();
@@ -17,7 +26,7 @@ function App() {
 
   const fetchTodos = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/todos');
+      const response = await axios.get(`${backendURL}api/todos`);
       setTodos(response.data);
     } catch (error) {
       console.error('Error:', error);
@@ -30,13 +39,13 @@ function App() {
     e.preventDefault();
     try {
       if (editId) {
-        await axios.patch(`http://localhost:5000/api/todos/${editId}`, {
+        await axios.patch(`${backendURL}api/todos/${editId}`, {
           title,
           description,
         });
         setEditId(null);
       } else {
-        await axios.post('http://localhost:5000/api/todos', {
+        await axios.post(`${backendURL}api/todos`, {
           title,
           description,
         });
@@ -59,7 +68,7 @@ function App() {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/todos/${id}`);
+      await axios.delete(`${backendURL}api/todos/${id}`);
       setTodos(todos.filter(todo => todo._id !== id));
     } catch (error) {
       console.error('Error:', error);
@@ -68,11 +77,16 @@ function App() {
 
   const handleToggleComplete = async (todo) => {
     try {
-      const response = await axios.patch(`http://localhost:5000/api/todos/${todo._id}/toggle`);
+      const response = await axios.patch(`${backendURL}api/todos/${todo._id}/toggle`);
       setTodos(todos.map(t => t._id === todo._id ? response.data : t));
     } catch (error) {
       console.error('Error:', error);
     }
+  };
+
+  const handleRouteClick = (path) => {
+    const url = `${backendURL}${path}`;
+    window.open(url, '_blank');
   };
 
   const filteredTodos = todos.filter(todo => {
@@ -85,9 +99,17 @@ function App() {
       <header className="sticky top-0 z-50 backdrop-blur-2xl bg-[#ffffff05]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-xl font-medium text-white/90">
-              Task Manager
-            </h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-medium text-white/90">
+                Task Manager
+              </h1>
+              <button
+                onClick={() => setShowRoutes(true)}
+                className="text-sm px-3 py-1 rounded-lg bg-[#ffffff10] text-white/70 hover:text-white/90 hover:bg-[#ffffff15] transition-all duration-300"
+              >
+                API Routes
+              </button>
+            </div>
             <button
               onClick={() => setIsFormVisible(!isFormVisible)}
               className="w-9 h-9 flex items-center justify-center rounded-lg bg-[#ffffff15] text-white/90 hover:bg-[#ffffff20] transition-all duration-300"
@@ -97,6 +119,65 @@ function App() {
           </div>
         </div>
       </header>
+      {showRoutes && (
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center animate-fadeIn"
+        onClick={() => setShowRoutes(false)}
+      >
+        <div 
+          className="bg-[#1a1a1a] rounded-xl p-6 max-w-2xl w-full mx-4 shadow-2xl border border-[#ffffff15]
+                    animate-slideUp transform-gpu"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-medium text-white/90">API Routes</h2>
+            <button
+              onClick={() => setShowRoutes(false)}
+              className="p-2 hover:bg-[#ffffff10] rounded-lg transition-all duration-300 hover:rotate-90"
+            >
+              <X size={20} className="text-white/70" />
+            </button>
+          </div>
+          <div className="space-y-3">
+            {apiRoutes.map((route, index) => (
+              <button
+                key={index}
+                onClick={() => handleRouteClick(route.path.replace(':id', '123'))}
+                className="w-full bg-[#ffffff08] rounded-lg p-4 flex items-start justify-between group 
+                        hover:bg-[#ffffff10] transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`inline-block px-2 py-1 text-xs rounded transform transition-all duration-300 group-hover:scale-110 ${
+                    route.method === 'GET' ? 'bg-emerald-500/20 text-emerald-400' :
+                    route.method === 'POST' ? 'bg-blue-500/20 text-blue-400' :
+                    route.method === 'PATCH' ? 'bg-amber-500/20 text-amber-400' :
+                    'bg-rose-500/20 text-rose-400'
+                  }`}>
+                    {route.method}
+                  </span>
+                  <span className="text-white/90 font-mono text-sm">{route.path}</span>
+                  <ExternalLink size={14} className="text-white/30 group-hover:text-white/90 transform transition-all duration-300 group-hover:translate-x-1" />
+                </div>
+                <span className="text-white/50 text-sm group-hover:text-white/70 transition-all duration-300">
+                  {route.desc}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <p className="text-white/50 text-sm">
+              Base URL: 
+              <button 
+                onClick={() => window.open(backendURL, '_blank')}
+                className="text-white/90 font-mono break-all ml-2 hover:text-white transition-all duration-300 hover:underline"
+              >
+                {backendURL}
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
 
       <div className={`fixed inset-x-0 bottom-0 transform transition-transform duration-300 ease-in-out z-50 ${isFormVisible ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="backdrop-blur-2xl bg-[#ffffff08] rounded-t-2xl shadow-2xl max-w-5xl mx-auto border border-[#ffffff15]">
